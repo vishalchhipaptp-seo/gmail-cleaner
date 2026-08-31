@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gmail Attachment Cleaner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Token system ── */
+:root {
+  --bg:        #eef2f7;
+  --surface:   #ffffff;
+  --surface2:  #f4f7fb;
+  --border:    #dde5f0;
+  --border2:   #c8d5e8;
+  --text:      #111827;
+  --text2:     #6b7280;
+  --text3:     #9ca3af;
+  --accent:    #2563eb;
+  --accent-h:  #1d4ed8;
+  --accent-bg: #eff6ff;
+  --danger:    #dc2626;
+  --danger-h:  #b91c1c;
+  --danger-bg: #fef2f2;
+  --danger-bd: #fecaca;
+  --success:   #16a34a;
+  --success-bg:#f0fdf4;
+  --warn:      #d97706;
+  --radius:    8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08);
+  --shadow:    0 2px 8px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.06);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.08);
+  --font-ui:   'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --surface2:  #0d1117;
+    --border:    #30363d;
+    --border2:   #444c56;
+    --text:      #e6edf3;
+    --text2:     #8b949e;
+    --text3:     #6e7681;
+    --accent-bg: #1c2a3f;
+    --danger-bg: #2d1515;
+    --danger-bd: #7f1d1d;
+    --success-bg:#0f2a1a;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+    --shadow:    0 2px 8px rgba(0,0,0,.4);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,.5);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg:        #0d1117;
+  --surface:   #161b22;
+  --surface2:  #0d1117;
+  --border:    #30363d;
+  --border2:   #444c56;
+  --text:      #e6edf3;
+  --text2:     #8b949e;
+  --text3:     #6e7681;
+  --accent-bg: #1c2a3f;
+  --danger-bg: #2d1515;
+  --danger-bd: #7f1d1d;
+  --success-bg:#0f2a1a;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+  --shadow:    0 2px 8px rgba(0,0,0,.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.5);
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Topbar ── */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: var(--shadow-sm);
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+  letter-spacing: -.01em;
+}
+.logo svg { flex-shrink: 0; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+}
+.user-avatar {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-ui);
+}
+
+/* ── Buttons ── */
+.btn {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: background .15s, box-shadow .15s, opacity .15s;
+  line-height: 1;
+}
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
+
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-h); box-shadow: 0 2px 8px rgba(37,99,235,.35); }
+
+.btn-danger  { background: var(--danger); color: #fff; }
+.btn-danger:hover:not(:disabled) { background: var(--danger-h); box-shadow: 0 2px 8px rgba(220,38,38,.35); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text2);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: var(--surface2); color: var(--text); }
+
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+/* ── Layout ── */
+.page { max-width: 1060px; margin: 0 auto; padding: 28px 20px 60px; }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 20px 22px;
+  margin-bottom: 14px;
+}
+.card-title {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* ── File:// warning ── */
+.protocol-warning {
+  border: 2px solid var(--warn);
+  background: #fffbeb;
+  color: #92400e;
+  border-radius: var(--radius-lg);
+  padding: 18px 22px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+:root[data-theme="dark"] .protocol-warning,
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .protocol-warning { background: #2d1f00; color: #fcd34d; } }
+
+/* ── Setup guide ── */
+details summary {
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--accent);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+details summary::before { content: '▶'; font-size: 10px; transition: transform .2s; }
+details[open] summary::before { transform: rotate(90deg); }
+.setup-guide {
+  margin-top: 14px;
+  padding: 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.step {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.55;
+}
+.step-n {
+  min-width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-ui);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.step code {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+/* ── Input ── */
+.input-row { display: flex; gap: 8px; margin-top: 12px; }
+input[type="text"], input[type="number"], select {
+  font-family: var(--font-body);
+  font-size: 13px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+input::placeholder { color: var(--text3); }
+
+/* ── Size chips ── */
+.chip-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.chip {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 13px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .15s;
+  user-select: none;
+  letter-spacing: .01em;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.chip.on { border-color: var(--accent); background: var(--accent); color: #fff; }
+
+/* ── Scanner row ── */
+.scanner-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.label { font-family: var(--font-ui); font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+
+/* ── Progress ── */
+.progress-wrap { margin-top: 16px; }
+.progress-label {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+}
+.progress-track {
+  height: 3px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 99px;
+  transition: width .35s ease;
+  width: 0%;
+}
+
+/* ── Stats strip ── */
+.stats-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) auto;
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.stat-cell {
+  padding: 16px 20px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.stat-cell:last-child { border-right: none; align-items: center; justify-content: center; padding: 12px 20px; }
+.stat-val {
+  font-family: var(--font-ui);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+}
+.stat-val.danger { color: var(--danger); }
+.stat-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text3);
+  font-family: var(--font-ui);
+}
+
+/* ── Thread table ── */
+.table-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.table-hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text3);
+  font-style: italic;
+}
+.col-head {
+  display: grid;
+  grid-template-columns: 38px 1fr 155px 85px 55px 95px;
+  gap: 10px;
+  padding: 7px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text3);
+  border-bottom: 1px solid var(--border);
+}
+.col-head .r { text-align: right; }
+
+.thread-list { display: flex; flex-direction: column; }
+
+.thread-row {
+  border-bottom: 1px solid var(--border);
+  transition: background .12s;
+}
+.thread-row:last-child { border-bottom: none; }
+.thread-row.to-delete { background: var(--danger-bg); }
+.thread-row.to-keep   { opacity: .55; }
+
+.thread-main {
+  display: grid;
+  grid-template-columns: 38px 1fr 155px 85px 55px 95px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+}
+.thread-main:hover { background: var(--surface2); }
+.thread-row.to-delete .thread-main:hover { background: rgba(220,38,38,.07); }
+
+.t-check {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--danger);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.t-subject {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+}
+.t-from {
+  font-size: 12px;
+  color: var(--text2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.t-date {
+  font-size: 12px;
+  color: var(--text2);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.t-count {
+  text-align: right;
+  font-size: 12px;
+  color: var(--text2);
+  white-space: nowrap;
+}
+.t-size {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.size-pill {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-bd);
+  color: var(--danger);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.thread-row.to-keep .size-pill {
+  background: var(--surface2);
+  border-color: var(--border);
+  color: var(--text2);
+}
+.chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--text3);
+  transition: transform .2s;
+  flex-shrink: 0;
+}
+.thread-row.open .chevron { transform: rotate(90deg); }
+
+/* ── Attachment sub-rows ── */
+.att-panel {
+  display: none;
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+  padding: 6px 14px 6px 52px;
+}
+.thread-row.open .att-panel { display: block; }
+.att-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text2);
+}
+.att-row:last-child { border-bottom: none; }
+.att-icon { font-size: 15px; flex-shrink: 0; }
+.att-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 11.5px;
+  color: var(--text);
+}
+.att-type {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.att-size {
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* ── Empty state ── */
+.empty {
+  text-align: center;
+  padding: 56px 24px;
+  color: var(--text2);
+}
+.empty-icon { font-size: 44px; margin-bottom: 12px; }
+.empty h3 { font-family: var(--font-ui); font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+.empty p { font-size: 13px; }
+
+/* ── Modal ── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  padding: 20px;
+  backdrop-filter: blur(2px);
+}
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  max-width: 460px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+}
+.modal h3 {
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.modal p { font-size: 13px; color: var(--text2); margin-bottom: 22px; line-height: 1.6; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  padding: 11px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-family: var(--font-ui);
+  font-weight: 500;
+  z-index: 999;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp .25s ease;
+  max-width: 340px;
+}
+.toast.ok   { background: var(--success); color: #fff; }
+.toast.err  { background: var(--danger);  color: #fff; }
+.toast.info { background: var(--text);    color: var(--bg); }
+
+@keyframes slideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Util ── */
+.hidden { display: none !important; }
+.mt12 { margin-top: 12px; }
+.mt6  { margin-top: 6px; }
+.hint { font-size: 11.5px; color: var(--text3); margin-top: 7px; }
+
+@media (max-width: 700px) {
+  .stats-strip { grid-template-columns: 1fr 1fr; }
+  .stats-strip .stat-cell:nth-child(2) { border-right: none; }
+  .stats-strip .stat-cell:last-child { grid-column: 1 / -1; border-top: 1px solid var(--border); }
+  .col-head, .thread-main {
+    grid-template-columns: 32px 1fr 70px 80px;
+  }
+  .col-head .c-from, .col-head .c-count,
+  .thread-main .t-from, .thread-main .t-count { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3 6 5 6 21 6"/>
+      <path d="M19 6l-1 14H6L5 6"/>
+      <path d="M10 11v6M14 11v6"/>
+      <path d="M9 6V4h6v2"/>
+    </svg>
+    Gmail Attachment Cleaner
+  </div>
+  <div class="topbar-right">
+    <div class="user-chip hidden" id="user-chip">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span id="user-email-display"></span>
+    </div>
+    <button class="btn btn-ghost btn-sm hidden" id="btn-signout" onclick="App.signOut()">Sign out</button>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- Protocol warning -->
+  <div id="proto-warn" class="protocol-warning hidden">
+    ⚠️ <strong>Serve from a local server, not file://</strong><br>
+    Google OAuth requires a proper origin. In your terminal, <code>cd</code> to the folder containing this file, then run:<br>
+    <code style="display:inline-block;margin:8px 0;background:#fffbeb;padding:4px 10px;border-radius:4px;">python -m http.server 8000</code><br>
+    Then open <a href="http://localhost:8000" target="_blank">http://localhost:8000</a> and open this file.
+  </div>
+
+  <!-- Setup / Connect card -->
+  <div class="card" id="setup-card">
+    <div class="card-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Connect your Google account
+    </div>
+
+    <details>
+      <summary>First time? Step-by-step setup guide</summary>
+      <div class="setup-guide">
+        <div class="step"><div class="step-n">1</div><div>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> and create a new project (e.g. "Gmail Cleaner").</div></div>
+        <div class="step"><div class="step-n">2</div><div>Go to <strong>APIs &amp; Services → Library</strong>, search for <em>Gmail API</em> and click <strong>Enable</strong>.</div></div>
+        <div class="step"><div class="step-n">3</div><div>Go to <strong>OAuth consent screen</strong> → choose <strong>External</strong> → fill app name &amp; your email. Under Scopes add: <code>https://www.googleapis.com/auth/gmail.modify</code>. Add your email as a <em>Test User</em>. Save.</div></div>
+        <div class="step"><div class="step-n">4</div><div><strong>Credentials → Create Credentials → OAuth 2.0 Client ID</strong>. Choose <em>Web application</em>. Under <em>Authorized JavaScript origins</em> add <code>http://localhost:8000</code>. Save &amp; copy the <strong>Client ID</strong>.</div></div>
+        <div class="step"><div class="step-n">5</div><div>Paste the Client ID below, click Connect, then Sign in with Google. That's it.</div></div>
+      </div>
+    </details>
+
+    <div class="input-row mt12">
+      <input type="text" id="client-id-input" placeholder="Paste OAuth Client ID  (ends in .apps.googleusercontent.com)" />
+      <button class="btn btn-primary" onclick="App.saveClientId()">Connect</button>
+    </div>
+    <p class="hint">Your Client ID is saved in this browser only and never sent anywhere.</p>
+  </div>
+
+  <!-- Sign-in prompt -->
+  <div class="card hidden" id="signin-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div class="card-title" style="margin-bottom:4px;">Authorize Gmail access</div>
+        <p style="font-size:12px;color:var(--text2);">Grants read + modify access so we can find and trash large attachments.</p>
+      </div>
+      <button class="btn btn-primary" onclick="App.signIn()">
+        <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#fff" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6A7.8 7.8 0 0 0 17 9.08c0-.57-.05-.95-.15-1.18z"/><path fill="#fff" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.77 4.77 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#fff" d="M4.5 10.52a4.77 4.77 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18z"/><path fill="#fff" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
+        Sign in with Google
+      </button>
+    </div>
+  </div>
+
+  <!-- Scanner controls -->
+  <div class="card hidden" id="scanner-card">
+    <div class="card-title">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Scan for large attachments
+    </div>
+    <div class="scanner-row">
+      <span class="label">Min size</span>
+      <div class="chip-group">
+        <div class="chip" data-mb="5"  onclick="App.setSize(5)">5 MB</div>
+        <div class="chip on" data-mb="10" onclick="App.setSize(10)">10 MB</div>
+        <div class="chip" data-mb="20" onclick="App.setSize(20)">20 MB</div>
+        <div class="chip" data-mb="50" onclick="App.setSize(50)">50 MB</div>
+        <div class="chip" data-mb="100" onclick="App.setSize(100)">100 MB</div>
+      </div>
+      <span class="label" style="margin-left:4px;">or</span>
+      <input type="number" id="custom-mb" placeholder="Custom MB" style="width:110px;flex:none;" min="1" oninput="App.setCustomSize()" />
+      <button class="btn btn-primary" id="btn-scan" onclick="App.scan()" style="margin-left:auto;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Scan Gmail
+      </button>
+    </div>
+    <div class="progress-wrap hidden" id="scan-progress">
+      <div class="progress-label">
+        <span id="prog-text">Scanning...</span>
+        <span id="prog-pct">0%</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="prog-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="hidden" id="results-section">
+
+    <!-- Stats strip -->
+    <div class="stats-strip">
+      <div class="stat-cell">
+        <div class="stat-val" id="s-found">0</div>
+        <div class="stat-lbl">Threads Found</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-val" id="s-total">0 MB</div>
+        <div class="stat-lbl">Total Attachments</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-val danger" id="s-sel">0</div>
+        <div class="stat-lbl">Selected to Delete</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-val danger" id="s-free">0 MB</div>
+        <div class="stat-lbl">Space to Reclaim</div>
+      </div>
+      <div class="stat-cell">
+        <button class="btn btn-danger" id="btn-trash" onclick="App.confirmTrash()" disabled style="font-size:13px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          Move to Trash
+        </button>
+      </div>
+    </div>
+
+    <!-- Thread list card -->
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="table-controls">
+        <button class="btn btn-ghost btn-sm" onclick="App.selectAll()">Select All</button>
+        <button class="btn btn-ghost btn-sm" onclick="App.deselectAll()">Deselect All</button>
+        <span class="table-hint">Checked = moves to Trash &nbsp;|&nbsp; Uncheck threads you want to keep</span>
+      </div>
+      <div class="col-head">
+        <div></div>
+        <div>Subject</div>
+        <div class="c-from">From</div>
+        <div>Date</div>
+        <div class="c-count r">Files</div>
+        <div class="r">Total Size</div>
+      </div>
+      <div class="thread-list" id="thread-list">
+        <div class="empty" id="empty-state" style="display:none;">
+          <div class="empty-icon">🎉</div>
+          <h3>Inbox is clean!</h3>
+          <p>No threads with attachments that large were found.</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /results-section -->
+</div><!-- /page -->
+
+<!-- Confirmation modal -->
+<div class="overlay hidden" id="modal">
+  <div class="modal">
+    <h3>Move to Trash?</h3>
+    <p id="modal-body">The selected threads will be moved to Gmail Trash. You can restore them within 30 days.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="App.closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="btn-confirm" onclick="App.doTrash()">Move to Trash</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async></script>
+<script>
+const GMAIL = 'https://gmail.googleapis.com/gmail/v1/users/me';
+
+const App = {
+  token: null,
+  client: null,
+  thresholdMB: 10,
+  scanning: false,
+  threads: new Map(),      // threadId -> {threadId, subject, from, date, attachments[], sizeEstimate}
+  selected: new Set(),     // threadIds checked for deletion
+
+  // ── Init ─────────────────────────────────────────────────────────────
+  init() {
+    if (location.protocol === 'file:') {
+      document.getElementById('proto-warn').classList.remove('hidden');
+    }
+    const saved = localStorage.getItem('gc_client_id');
+    if (saved) {
+      document.getElementById('client-id-input').value = saved;
+      this._initGIS(saved);
+    }
+  },
+
+  saveClientId() {
+    const cid = document.getElementById('client-id-input').value.trim();
+    if (!cid.includes('.apps.googleusercontent.com')) {
+      this.toast('Paste a valid OAuth Client ID (ending in .apps.googleusercontent.com)', 'err'); return;
+    }
+    localStorage.setItem('gc_client_id', cid);
+    this._initGIS(cid);
+  },
+
+  _initGIS(cid) {
+    const wait = () => {
+      if (typeof google === 'undefined' || !google.accounts) { setTimeout(wait, 200); return; }
+      try {
+        this.client = google.accounts.oauth2.initTokenClient({
+          client_id: cid,
+          scope: 'https://www.googleapis.com/auth/gmail.modify',
+          callback: r => this._onToken(r),
+        });
+        document.getElementById('setup-card').classList.add('hidden');
+        document.getElementById('signin-card').classList.remove('hidden');
+      } catch(e) {
+        this.toast('Could not initialize Google Auth. Check your Client ID.', 'err');
+      }
+    };
+    wait();
+  },
+
+  signIn() {
+    if (!this.client) { this.toast('Connect a Client ID first.', 'err'); return; }
+    this.client.requestAccessToken({ prompt: 'consent' });
+  },
+
+  _onToken(resp) {
+    if (resp.error) { this.toast('Sign-in failed: ' + resp.error, 'err'); return; }
+    this.token = resp.access_token;
+    this._showSignedIn();
+  },
+
+  _showSignedIn() {
+    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${this.token}` }
+    }).then(r => r.json()).then(u => {
+      const chip = document.getElementById('user-chip');
+      document.getElementById('user-avatar').textContent = (u.email || '?')[0].toUpperCase();
+      document.getElementById('user-email-display').textContent = u.email || 'Signed in';
+      chip.classList.remove('hidden');
+    }).catch(() => {});
+    document.getElementById('signin-card').classList.add('hidden');
+    document.getElementById('btn-signout').classList.remove('hidden');
+    document.getElementById('scanner-card').classList.remove('hidden');
+  },
+
+  signOut() {
+    if (this.token) google.accounts.oauth2.revoke(this.token);
+    this.token = null;
+    this.threads.clear();
+    this.selected.clear();
+    document.getElementById('user-chip').classList.add('hidden');
+    document.getElementById('btn-signout').classList.add('hidden');
+    document.getElementById('scanner-card').classList.add('hidden');
+    document.getElementById('results-section').classList.add('hidden');
+    document.getElementById('signin-card').classList.remove('hidden');
+    this.toast('Signed out.');
+  },
+
+  // ── Size selector ─────────────────────────────────────────────────────
+  setSize(mb) {
+    this.thresholdMB = mb;
+    document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', +c.dataset.mb === mb));
+    document.getElementById('custom-mb').value = '';
+  },
+  setCustomSize() {
+    const v = parseInt(document.getElementById('custom-mb').value);
+    if (v > 0) {
+      this.thresholdMB = v;
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+    }
+  },
+
+  // ── API helper ────────────────────────────────────────────────────────
+  async api(url, opts = {}) {
+    const r = await fetch(url, {
+      ...opts,
+      headers: { Authorization: `Bearer ${this.token}`, 'Content-Type': 'application/json', ...opts.headers }
+    });
+    if (r.status === 401) { this.signOut(); throw new Error('Token expired'); }
+    if (!r.ok) throw new Error(`Gmail API ${r.status}`);
+    if (r.status === 204) return {};
+    return r.json();
+  },
+
+  // ── Scan ──────────────────────────────────────────────────────────────
+  async scan() {
+    if (this.scanning || !this.token) return;
+    this.scanning = true;
+    document.getElementById('btn-scan').disabled = true;
+    document.getElementById('results-section').classList.add('hidden');
+    document.getElementById('scan-progress').classList.remove('hidden');
+    this.threads.clear();
+    this.selected.clear();
+
+    try {
+      this._prog(2, `Searching Gmail for attachments > ${this.thresholdMB} MB...`);
+
+      // 1. List all messages
+      const msgs = await this._listMessages(`has:attachment larger:${this.thresholdMB}m`);
+      if (!msgs.length) {
+        this._prog(100, 'Done.');
+        document.getElementById('empty-state').style.display = 'block';
+        document.getElementById('thread-list').innerHTML = '';
+        document.getElementById('results-section').classList.remove('hidden');
+        this._updateStats();
+        return;
+      }
+
+      this._prog(12, `Found ${msgs.length} messages. Fetching details...`);
+
+      // 2. Fetch details in batches of 8
+      const details = await this._fetchBatch(msgs);
+
+      // 3. Build thread map
+      this._prog(92, 'Grouping by thread...');
+      this._buildThreads(details.filter(Boolean));
+
+      // 4. Render
+      this._prog(100, `Complete — ${this.threads.size} thread${this.threads.size !== 1 ? 's' : ''} found.`);
+      this._render();
+
+    } catch(e) {
+      this.toast('Scan error: ' + e.message, 'err');
+      console.error(e);
+    } finally {
+      this.scanning = false;
+      document.getElementById('btn-scan').disabled = false;
+      setTimeout(() => document.getElementById('scan-progress').classList.add('hidden'), 2200);
+    }
+  },
+
+  async _listMessages(q) {
+    let all = [], pt = null, page = 0;
+    do {
+      const url = `${GMAIL}/messages?q=${encodeURIComponent(q)}&maxResults=500${pt ? '&pageToken=' + pt : ''}`;
+      const d = await this.api(url);
+      if (d.messages) all = all.concat(d.messages);
+      pt = d.nextPageToken;
+      this._prog(2 + Math.min(9, ++page * 3), `Found ${all.length} messages...`);
+    } while (pt);
+    return all;
+  },
+
+  async _fetchBatch(msgs) {
+    const results = [];
+    const total = msgs.length;
+    const BS = 8; // concurrent requests
+    for (let i = 0; i < total; i += BS) {
+      const batch = msgs.slice(i, i + BS);
+      const res = await Promise.all(batch.map(m => this._msgDetail(m.id).catch(() => null)));
+      results.push(...res);
+      this._prog(12 + Math.round((i + BS) / total * 76), `Fetched ${Math.min(i + BS, total)} / ${total}`);
+      if (i + BS < total) await this._sleep(70);
+    }
+    return results;
+  },
+
+  async _msgDetail(id) {
+    return this.api(`${GMAIL}/messages/${id}?format=full`);
+  },
+
+  _buildThreads(msgs) {
+    for (const msg of msgs) {
+      if (!msg) continue;
+      const tid    = msg.threadId;
+      const hdrs   = msg.payload?.headers || [];
+      const subj   = this._hdr(hdrs, 'Subject') || '(No Subject)';
+      const from   = this._parseFrom(this._hdr(hdrs, 'From'));
+      const date   = new Date(parseInt(msg.internalDate || Date.now()));
+      const atts   = this._extractAtts(msg.payload);
+
+      if (!this.threads.has(tid)) {
+        this.threads.set(tid, { tid, subject: subj, from, date, attachments: [], sizeEst: 0 });
+      }
+      const t = this.threads.get(tid);
+      if (date > t.date) t.date = date;
+      t.sizeEst += msg.sizeEstimate || 0;
+      for (const a of atts) {
+        const key = a.name + '|' + a.size;
+        if (!t.attachments.some(x => x.name + '|' + x.size === key)) t.attachments.push(a);
+      }
+    }
+  },
+
+  _extractAtts(payload, out = []) {
+    if (!payload) return out;
+    const disp = this._hdr(payload.headers || [], 'Content-Disposition') || '';
+    if (payload.filename?.trim() && (payload.body?.size > 0 || payload.body?.attachmentId) && !disp.toLowerCase().startsWith('inline')) {
+      out.push({ name: payload.filename, mime: payload.mimeType || 'application/octet-stream', size: payload.body?.size || 0 });
+    }
+    if (payload.parts) payload.parts.forEach(p => this._extractAtts(p, out));
+    return out;
+  },
+
+  _hdr(headers, name) {
+    if (!headers) return '';
+    const h = headers.find(x => x.name?.toLowerCase() === name.toLowerCase());
+    return h?.value || '';
+  },
+
+  _parseFrom(raw) {
+    const m = raw.match(/^(.+?)\s*<.+>$/);
+    if (m) return m[1].replace(/"/g, '').trim();
+    return raw.replace(/<[^>]+>/g, '').trim() || raw;
+  },
+
+  // ── Render ────────────────────────────────────────────────────────────
+  _render() {
+    // Default: all selected
+    this.selected = new Set(this.threads.keys());
+
+    const list  = document.getElementById('thread-list');
+    const empty = document.getElementById('empty-state');
+    if (!this.threads.size) { empty.style.display = 'block'; list.innerHTML = ''; }
+    else {
+      empty.style.display = 'none';
+      const sorted = [...this.threads.values()].sort((a, b) => this._threadSize(b) - this._threadSize(a));
+      list.innerHTML = sorted.map(t => this._threadHtml(t)).join('');
+    }
+    document.getElementById('results-section').classList.remove('hidden');
+    this._updateStats();
+  },
+
+  _threadSize(t) {
+    const s = t.attachments.reduce((n, a) => n + a.size, 0);
+    return s || t.sizeEst;
+  },
+
+  _threadHtml(t) {
+    const sz    = this._threadSize(t);
+    const atts  = t.attachments;
+    const chk   = this.selected.has(t.tid);
+    const attHtml = atts.length
+      ? atts.map(a => `
+          <div class="att-row">
+            <span class="att-icon">${this._icon(a.mime, a.name)}</span>
+            <span class="att-name" title="${this._esc(a.name)}">${this._esc(a.name)}</span>
+            <span class="att-type">${(a.name.split('.').pop() || 'file').substring(0, 6).toUpperCase()}</span>
+            <span class="att-size">${this._fmtSize(a.size)}</span>
+          </div>`).join('')
+      : '<div class="att-row" style="color:var(--text3);font-size:12px;">Attachment metadata unavailable</div>';
+
+    return `<div class="thread-row ${chk ? 'to-delete' : 'to-keep'}" id="tr-${t.tid}" data-tid="${t.tid}">
+      <div class="thread-main" onclick="App._toggle('${t.tid}', event)">
+        <input type="checkbox" class="t-check" ${chk ? 'checked' : ''} onclick="App._chk('${t.tid}', event)" />
+        <div class="t-subject" title="${this._esc(t.subject)}">${this._esc(t.subject)}</div>
+        <div class="t-from c-from" title="${this._esc(t.from)}">${this._esc(t.from)}</div>
+        <div class="t-date">${this._fmtDate(t.date)}</div>
+        <div class="t-count c-count">${atts.length} file${atts.length !== 1 ? 's' : ''}</div>
+        <div class="t-size">
+          <span class="size-pill">${this._fmtSize(sz)}</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+      <div class="att-panel">${attHtml}</div>
+    </div>`;
+  },
+
+  _toggle(tid, e) {
+    if (e.target.type === 'checkbox') return;
+    const row = document.getElementById('tr-' + tid);
+    row.classList.toggle('open');
+  },
+
+  _chk(tid, e) {
+    e.stopPropagation();
+    const row = document.getElementById('tr-' + tid);
+    if (e.target.checked) {
+      this.selected.add(tid);
+      row.classList.add('to-delete');
+      row.classList.remove('to-keep');
+    } else {
+      this.selected.delete(tid);
+      row.classList.remove('to-delete');
+      row.classList.add('to-keep');
+    }
+    this._updateStats();
+  },
+
+  selectAll() {
+    this.selected = new Set(this.threads.keys());
+    document.querySelectorAll('.thread-row').forEach(r => {
+      r.querySelector('.t-check').checked = true;
+      r.classList.add('to-delete');
+      r.classList.remove('to-keep');
+    });
+    this._updateStats();
+  },
+
+  deselectAll() {
+    this.selected.clear();
+    document.querySelectorAll('.thread-row').forEach(r => {
+      r.querySelector('.t-check').checked = false;
+      r.classList.remove('to-delete');
+      r.classList.add('to-keep');
+    });
+    this._updateStats();
+  },
+
+  _updateStats() {
+    let total = 0, selSize = 0;
+    for (const [tid, t] of this.threads) {
+      const s = this._threadSize(t);
+      total += s;
+      if (this.selected.has(tid)) selSize += s;
+    }
+    document.getElementById('s-found').textContent = this.threads.size;
+    document.getElementById('s-total').textContent = this._fmtSize(total);
+    document.getElementById('s-sel').textContent   = this.selected.size;
+    document.getElementById('s-free').textContent  = this._fmtSize(selSize);
+    document.getElementById('btn-trash').disabled  = this.selected.size === 0;
+  },
+
+  // ── Trash ─────────────────────────────────────────────────────────────
+  confirmTrash() {
+    const n = this.selected.size;
+    if (!n) return;
+    let sz = 0;
+    for (const tid of this.selected) { const t = this.threads.get(tid); if (t) sz += this._threadSize(t); }
+    document.getElementById('modal-body').textContent =
+      `${n} thread${n > 1 ? 's' : ''} (~${this._fmtSize(sz)}) will be moved to Gmail Trash. You can restore them within 30 days.`;
+    document.getElementById('modal').classList.remove('hidden');
+  },
+
+  closeModal() { document.getElementById('modal').classList.add('hidden'); },
+
+  async doTrash() {
+    this.closeModal();
+    const toTrash = [...this.selected];
+    const total   = toTrash.length;
+    let done = 0, fail = 0;
+
+    document.getElementById('btn-trash').disabled = true;
+    document.getElementById('scan-progress').classList.remove('hidden');
+    this._prog(0, `Moving to Trash: 0 / ${total}...`);
+
+    for (let i = 0; i < total; i += 4) {
+      const batch = toTrash.slice(i, i + 4);
+      await Promise.all(batch.map(async tid => {
+        try {
+          await this.api(`${GMAIL}/threads/${tid}/trash`, { method: 'POST' });
+          done++;
+          const row = document.getElementById('tr-' + tid);
+          if (row) { row.style.opacity = '0'; row.style.transition = 'opacity .3s'; setTimeout(() => row.remove(), 300); }
+          this.threads.delete(tid);
+          this.selected.delete(tid);
+        } catch(e) { fail++; console.error(e); }
+      }));
+      this._prog(Math.round((i + 4) / total * 100), `Moved ${done} / ${total} to Trash...`);
+      if (i + 4 < total) await this._sleep(80);
+    }
+
+    this._updateStats();
+    setTimeout(() => document.getElementById('scan-progress').classList.add('hidden'), 2000);
+    if (fail) this.toast(`${done} moved to Trash, ${fail} failed.`, 'err');
+    else      this.toast(`${done} thread${done !== 1 ? 's' : ''} moved to Trash.`, 'ok');
+    document.getElementById('btn-trash').disabled = this.selected.size === 0;
+  },
+
+  // ── Utils ─────────────────────────────────────────────────────────────
+  _prog(pct, text) {
+    document.getElementById('prog-fill').style.width = pct + '%';
+    document.getElementById('prog-text').textContent = text;
+    document.getElementById('prog-pct').textContent  = pct + '%';
+  },
+  _sleep(ms) { return new Promise(r => setTimeout(r, ms)); },
+
+  _fmtSize(b) {
+    if (!b) return '—';
+    if (b < 1024)           return b + ' B';
+    if (b < 1048576)        return (b / 1024).toFixed(1) + ' KB';
+    if (b < 1073741824)     return (b / 1048576).toFixed(1) + ' MB';
+    return (b / 1073741824).toFixed(2) + ' GB';
+  },
+
+  _fmtDate(d) {
+    if (!d) return '';
+    const now  = new Date();
+    const diff = Math.floor((now - d) / 86400000);
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    if (diff < 7)   return diff + 'd ago';
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+  },
+
+  _icon(mime, name) {
+    const ext = (name || '').split('.').pop().toLowerCase();
+    const map = { pdf: '📄', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊', ppt: '📑', pptx: '📑', zip: '🗜️', rar: '🗜️', '7z': '🗜️', tar: '🗜️', gz: '🗜️', mp4: '🎬', mov: '🎬', avi: '🎬', mkv: '🎬', webm: '🎬', wmv: '🎬', mp3: '🎵', wav: '🎵', aac: '🎵', flac: '🎵', m4a: '🎵', jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️', svg: '🖼️', psd: '🎨', ai: '🎨', fig: '🎨', sql: '🗄️', db: '🗄️', dmg: '💿', iso: '💿', exe: '⚙️', msi: '⚙️' };
+    if (map[ext]) return map[ext];
+    if (mime?.startsWith('video/')) return '🎬';
+    if (mime?.startsWith('audio/')) return '🎵';
+    if (mime?.startsWith('image/')) return '🖼️';
+    return '📎';
+  },
+
+  _esc(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  },
+
+  toast(msg, type = 'info') {
+    const old = document.querySelector('.toast');
+    if (old) old.remove();
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4500);
+  },
+};
+
+window.addEventListener('load', () => App.init());
+</script>
+</body>
+</html>
