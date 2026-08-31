@@ -404,22 +404,30 @@ input::placeholder { color: var(--text3); }
   border-bottom: 1px solid var(--border);
 }
 .col-head .r { text-align: right; }
-.col-head .sh {
+button.sh {
+  all: unset;
   cursor: pointer;
   user-select: none;
   display: flex;
   align-items: center;
   gap: 4px;
   border-radius: 4px;
-  padding: 4px 6px;
-  margin: -4px -6px;
-  width: calc(100% + 12px);
+  padding: 4px 8px;
+  margin: -4px -8px;
+  width: calc(100% + 16px);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text3);
   transition: background .12s, color .12s;
+  box-sizing: border-box;
 }
-.col-head .sh:hover { background: var(--border); color: var(--text); }
-.col-head .sh.active { color: var(--accent); }
-.sort-arrow { font-size: 10px; opacity: .6; }
-.col-head .sh.active .sort-arrow { opacity: 1; }
+button.sh:hover { background: var(--border); color: var(--text); }
+button.sh.active { color: var(--accent); }
+button.sh:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.sa { font-size: 11px; font-weight: 700; }
 
 .thread-list { display: flex; flex-direction: column; }
 
@@ -779,11 +787,11 @@ input::placeholder { color: var(--text3); }
       </div>
       <div class="col-head" id="col-head">
         <div></div>
-        <div onclick="App.sortBy('subject')" class="sh" id="sh-subject">Subject <span class="sort-arrow" id="sa-subject"></span></div>
-        <div onclick="App.sortBy('from')" class="sh c-from" id="sh-from">From <span class="sort-arrow" id="sa-from"></span></div>
-        <div onclick="App.sortBy('date')" class="sh" id="sh-date">Date <span class="sort-arrow" id="sa-date"></span></div>
-        <div onclick="App.sortBy('files')" class="sh c-count" id="sh-files" style="justify-content:flex-end;">Files <span class="sort-arrow" id="sa-files"></span></div>
-        <div onclick="App.sortBy('size')" class="sh" id="sh-size" style="justify-content:flex-end;">Total Size <span class="sort-arrow" id="sa-size"></span></div>
+        <button class="sh" data-sort="subject">Subject <span class="sa" id="sa-subject"></span></button>
+        <button class="sh c-from" data-sort="from">From <span class="sa" id="sa-from"></span></button>
+        <button class="sh" data-sort="date">Date <span class="sa" id="sa-date"></span></button>
+        <button class="sh" data-sort="files" style="justify-content:flex-end;">Files <span class="sa" id="sa-files"></span></button>
+        <button class="sh" data-sort="size" style="justify-content:flex-end;">Total Size <span class="sa" id="sa-size"></span></button>
       </div>
       <div class="thread-list" id="thread-list">
         <div class="empty" id="empty-state" style="display:none;">
@@ -838,6 +846,10 @@ const App = {
     if (location.protocol === 'file:') {
       document.getElementById('proto-warn').classList.remove('hidden');
     }
+    // Wire sort buttons
+    document.querySelectorAll('button.sh[data-sort]').forEach(btn => {
+      btn.addEventListener('click', () => App.sortBy(btn.dataset.sort));
+    });
     this._initGIS(this.CLIENT_ID);
   },
 
@@ -1132,16 +1144,15 @@ const App = {
   },
 
   _updateSortUI() {
-    ['subject','from','date','files','size'].forEach(f => {
+    document.querySelectorAll('button.sh[data-sort]').forEach(btn => {
+      const f     = btn.dataset.sort;
       const arrow = document.getElementById('sa-' + f);
-      const head  = document.getElementById('sh-' + f);
-      if (!arrow || !head) return;
       if (f === this.sortField) {
-        arrow.textContent = this.sortDir === -1 ? ' ↓' : ' ↑';
-        head.classList.add('active');
+        if (arrow) arrow.textContent = this.sortDir === -1 ? '↓' : '↑';
+        btn.classList.add('active');
       } else {
-        arrow.textContent = '';
-        head.classList.remove('active');
+        if (arrow) arrow.textContent = '';
+        btn.classList.remove('active');
       }
     });
   },
