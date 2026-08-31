@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Gmail Attachment Cleaner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f8fafc; --surface: #fff; --text: #111827; --text2: #6b7280;
+  --border: #e5e7eb; --accent: #2563eb;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1117; --surface: #161b22; --text: #e6edf3; --text2: #8b949e; --border: #30363d;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', system-ui, sans-serif; font-size: 15px; line-height: 1.7; background: var(--bg); color: var(--text); padding: 48px 20px 80px; }
+.wrap { max-width: 680px; margin: 0 auto; }
+.back { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-size: 13px; font-weight: 500; text-decoration: none; margin-bottom: 32px; }
+.back:hover { text-decoration: underline; }
+h1 { font-size: 28px; font-weight: 600; letter-spacing: -.02em; margin-bottom: 6px; }
+.meta { font-size: 13px; color: var(--text2); margin-bottom: 40px; }
+h2 { font-size: 17px; font-weight: 600; margin: 36px 0 10px; }
+p, li { color: var(--text2); margin-bottom: 10px; }
+ul { padding-left: 20px; }
+li { margin-bottom: 6px; }
+.highlight {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 16px 18px;
+  margin: 24px 0;
+  font-size: 14px;
+  color: var(--text2);
+}
+a { color: var(--accent); }
+hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">← Back to Gmail Attachment Cleaner</a>
+
+  <h1>Privacy Policy</h1>
+  <p class="meta">Gmail Attachment Cleaner &nbsp;·&nbsp; Last updated: August 2026</p>
+
+  <div class="highlight">
+    <strong>Short version:</strong> This tool runs entirely in your browser. No data from your Gmail account is ever sent to, stored on, or processed by any server we operate. Your emails stay between you and Google.
+  </div>
+
+  <h2>What this tool does</h2>
+  <p>Gmail Attachment Cleaner is a client-side web application that helps you find and remove large email attachments from your Gmail inbox. All processing happens locally in your browser using Google's official Gmail API.</p>
+
+  <h2>What data we access</h2>
+  <p>When you sign in with Google, this tool requests the <code>gmail.modify</code> scope, which allows it to:</p>
+  <ul>
+    <li>Search your inbox for messages with large attachments</li>
+    <li>Read email metadata (subject, sender, date, attachment filename and size)</li>
+    <li>Move selected email threads to your Gmail Trash</li>
+  </ul>
+  <p>We do <strong>not</strong> read the body content of your emails. We do not download your attachments. We only read the metadata needed to build the attachment list shown in the dashboard.</p>
+
+  <h2>Data storage and retention</h2>
+  <ul>
+    <li>Your Google OAuth access token is held temporarily in browser memory only and is discarded when you close the page or sign out.</li>
+    <li>Your Google OAuth Client ID is saved in your browser's <code>localStorage</code> as a convenience so you do not have to re-enter it each visit. It is never transmitted anywhere.</li>
+    <li>No email data, attachment data, or personal information is stored anywhere outside your browser.</li>
+    <li>We operate no database, no server, and no logging infrastructure.</li>
+  </ul>
+
+  <h2>Third-party services</h2>
+  <ul>
+    <li><strong>Google Gmail API</strong> — All Gmail data access is performed directly between your browser and Google's servers under <a href="https://policies.google.com/privacy" target="_blank">Google's Privacy Policy</a>.</li>
+    <li><strong>Google Identity Services</strong> — Authentication is handled by Google's own sign-in library.</li>
+    <li><strong>Google Fonts</strong> — The page loads typefaces from fonts.googleapis.com, which may log your IP address per Google's policy.</li>
+    <li><strong>Vercel</strong> — The page is hosted on Vercel, which may log standard web server access logs (IP, timestamp, URL) per <a href="https://vercel.com/legal/privacy-policy" target="_blank">Vercel's Privacy Policy</a>. No Gmail data passes through Vercel.</li>
+  </ul>
+
+  <h2>OAuth scopes used</h2>
+  <ul>
+    <li><code>https://www.googleapis.com/auth/gmail.modify</code> — Used to list messages, read attachment metadata, and move threads to Trash.</li>
+    <li><code>openid, email, profile</code> — Used only to display your email address in the toolbar so you know which account is connected.</li>
+  </ul>
+
+  <h2>Your rights</h2>
+  <p>You can revoke this app's access to your Google account at any time by visiting <a href="https://myaccount.google.com/permissions" target="_blank">Google Account Permissions</a> and removing "Gmail Attachment Cleaner". Clicking Sign Out in the tool also revokes the current access token immediately.</p>
+
+  <h2>Children's privacy</h2>
+  <p>This tool is not directed at children under 13 and we do not knowingly collect information from children.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>If this policy changes materially, the "Last updated" date at the top will reflect the change. Continued use of the tool after a change constitutes acceptance of the updated policy.</p>
+
+  <hr>
+
+  <h2>Contact</h2>
+  <p>Questions about this privacy policy? Email <a href="mailto:vishal.chhipa.ptp@digigyan.org">vishal.chhipa.ptp@digigyan.org</a>.</p>
+</div>
+</body>
+</html>
