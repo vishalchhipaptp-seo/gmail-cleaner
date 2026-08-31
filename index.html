@@ -407,17 +407,18 @@ input::placeholder { color: var(--text3); }
 .col-head .sh {
   cursor: pointer;
   user-select: none;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 4px;
   border-radius: 4px;
-  padding: 2px 4px;
-  margin: -2px -4px;
+  padding: 4px 6px;
+  margin: -4px -6px;
   transition: background .12s, color .12s;
+  width: fit-content;
 }
 .col-head .sh:hover { background: var(--border); color: var(--text); }
 .col-head .sh.active { color: var(--accent); }
-.sort-arrow { font-size: 10px; opacity: .5; }
+.sort-arrow { font-size: 10px; opacity: .6; }
 .col-head .sh.active .sort-arrow { opacity: 1; }
 
 .thread-list { display: flex; flex-direction: column; }
@@ -778,11 +779,11 @@ input::placeholder { color: var(--text3); }
       </div>
       <div class="col-head" id="col-head">
         <div></div>
-        <div><span class="sh" onclick="App.sortBy('subject')">Subject <span class="sort-arrow" id="sa-subject"></span></span></div>
-        <div class="c-from"><span class="sh" onclick="App.sortBy('from')">From <span class="sort-arrow" id="sa-from"></span></span></div>
-        <div><span class="sh" onclick="App.sortBy('date')">Date <span class="sort-arrow" id="sa-date"></span></span></div>
-        <div class="c-count r"><span class="sh" onclick="App.sortBy('files')">Files <span class="sort-arrow" id="sa-files"></span></span></div>
-        <div class="r"><span class="sh" onclick="App.sortBy('size')">Total Size <span class="sort-arrow" id="sa-size"></span></span></div>
+        <div onclick="App.sortBy('subject')" class="sh" id="sh-subject">Subject <span class="sort-arrow" id="sa-subject"></span></div>
+        <div onclick="App.sortBy('from')" class="sh c-from" id="sh-from">From <span class="sort-arrow" id="sa-from"></span></div>
+        <div onclick="App.sortBy('date')" class="sh" id="sh-date">Date <span class="sort-arrow" id="sa-date"></span></div>
+        <div onclick="App.sortBy('files')" class="sh c-count" id="sh-files" style="justify-content:flex-end;">Files <span class="sort-arrow" id="sa-files"></span></div>
+        <div onclick="App.sortBy('size')" class="sh" id="sh-size" style="justify-content:flex-end;">Total Size <span class="sort-arrow" id="sa-size"></span></div>
       </div>
       <div class="thread-list" id="thread-list">
         <div class="empty" id="empty-state" style="display:none;">
@@ -1131,17 +1132,16 @@ const App = {
   },
 
   _updateSortUI() {
-    const fields = ['subject','from','date','files','size'];
-    fields.forEach(f => {
+    ['subject','from','date','files','size'].forEach(f => {
       const arrow = document.getElementById('sa-' + f);
-      const span  = arrow?.closest('.sh');
-      if (!arrow || !span) return;
+      const head  = document.getElementById('sh-' + f);
+      if (!arrow || !head) return;
       if (f === this.sortField) {
-        arrow.textContent = this.sortDir === -1 ? '↓' : '↑';
-        span.classList.add('active');
+        arrow.textContent = this.sortDir === -1 ? ' ↓' : ' ↑';
+        head.classList.add('active');
       } else {
-        arrow.textContent = '↕';
-        span.classList.remove('active');
+        arrow.textContent = '';
+        head.classList.remove('active');
       }
     });
   },
