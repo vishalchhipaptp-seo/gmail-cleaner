@@ -656,33 +656,8 @@ input::placeholder { color: var(--text3); }
     Then open <a href="http://localhost:8000" target="_blank">http://localhost:8000</a> and open this file.
   </div>
 
-  <!-- Setup / Connect card -->
-  <div class="card" id="setup-card">
-    <div class="card-title">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-      Connect your Google account
-    </div>
-
-    <details>
-      <summary>First time? Step-by-step setup guide</summary>
-      <div class="setup-guide">
-        <div class="step"><div class="step-n">1</div><div>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> and create a new project (e.g. "Gmail Cleaner").</div></div>
-        <div class="step"><div class="step-n">2</div><div>Go to <strong>APIs &amp; Services → Library</strong>, search for <em>Gmail API</em> and click <strong>Enable</strong>.</div></div>
-        <div class="step"><div class="step-n">3</div><div>Go to <strong>OAuth consent screen</strong> → choose <strong>External</strong> → fill app name &amp; your email. Under Scopes add: <code>https://www.googleapis.com/auth/gmail.modify</code>. Add your email as a <em>Test User</em>. Save.</div></div>
-        <div class="step"><div class="step-n">4</div><div><strong>Credentials → Create Credentials → OAuth 2.0 Client ID</strong>. Choose <em>Web application</em>. Under <em>Authorized JavaScript origins</em> add <code>http://localhost:8000</code>. Save &amp; copy the <strong>Client ID</strong>.</div></div>
-        <div class="step"><div class="step-n">5</div><div>Paste the Client ID below, click Connect, then Sign in with Google. That's it.</div></div>
-      </div>
-    </details>
-
-    <div class="input-row mt12">
-      <input type="text" id="client-id-input" placeholder="Paste OAuth Client ID  (ends in .apps.googleusercontent.com)" />
-      <button class="btn btn-primary" onclick="App.saveClientId()">Connect</button>
-    </div>
-    <p class="hint">Your Client ID is saved in this browser only and never sent anywhere.</p>
-  </div>
-
   <!-- Sign-in prompt -->
-  <div class="card hidden" id="signin-card">
+  <div class="card" id="signin-card">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
       <div>
         <div class="card-title" style="margin-bottom:4px;">Authorize Gmail access</div>
@@ -813,25 +788,14 @@ const App = {
   threads: new Map(),      // threadId -> {threadId, subject, from, date, attachments[], sizeEstimate}
   selected: new Set(),     // threadIds checked for deletion
 
+  CLIENT_ID: '442564552114-ja63h55e5kpd8lms1n06brn20c3n4mtv.apps.googleusercontent.com',
+
   // ── Init ─────────────────────────────────────────────────────────────
   init() {
     if (location.protocol === 'file:') {
       document.getElementById('proto-warn').classList.remove('hidden');
     }
-    const saved = localStorage.getItem('gc_client_id');
-    if (saved) {
-      document.getElementById('client-id-input').value = saved;
-      this._initGIS(saved);
-    }
-  },
-
-  saveClientId() {
-    const cid = document.getElementById('client-id-input').value.trim();
-    if (!cid.includes('.apps.googleusercontent.com')) {
-      this.toast('Paste a valid OAuth Client ID (ending in .apps.googleusercontent.com)', 'err'); return;
-    }
-    localStorage.setItem('gc_client_id', cid);
-    this._initGIS(cid);
+    this._initGIS(this.CLIENT_ID);
   },
 
   _initGIS(cid) {
@@ -843,7 +807,6 @@ const App = {
           scope: 'https://www.googleapis.com/auth/gmail.modify',
           callback: r => this._onToken(r),
         });
-        document.getElementById('setup-card').classList.add('hidden');
         document.getElementById('signin-card').classList.remove('hidden');
       } catch(e) {
         this.toast('Could not initialize Google Auth. Check your Client ID.', 'err');
@@ -886,7 +849,7 @@ const App = {
     document.getElementById('btn-signout').classList.add('hidden');
     document.getElementById('scanner-card').classList.add('hidden');
     document.getElementById('results-section').classList.add('hidden');
-    document.getElementById('signin-card').classList.remove('hidden');
+    this._initGIS(this.CLIENT_ID);
     this.toast('Signed out.');
   },
 
