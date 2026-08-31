@@ -702,6 +702,30 @@ input::placeholder { color: var(--text3); }
       </div>
       <span class="label" style="margin-left:4px;">or</span>
       <input type="number" id="custom-mb" placeholder="Custom MB" style="width:110px;flex:none;" min="1" oninput="App.setCustomSize()" />
+    </div>
+
+    <!-- Date filter row -->
+    <div class="scanner-row" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+      <span class="label">Period</span>
+      <div class="chip-group">
+        <div class="chip on" data-period="all"    onclick="App.setPeriod('all')">All time</div>
+        <div class="chip"    data-period="30"     onclick="App.setPeriod('30')">Last 30 days</div>
+        <div class="chip"    data-period="90"     onclick="App.setPeriod('90')">Last 90 days</div>
+        <div class="chip"    data-period="365"    onclick="App.setPeriod('365')">Last year</div>
+        <div class="chip"    data-period="custom" onclick="App.setPeriod('custom')">Custom range</div>
+      </div>
+    </div>
+
+    <!-- Custom date range (hidden until custom selected) -->
+    <div class="scanner-row hidden" id="date-range-row" style="margin-top:10px;gap:8px;">
+      <span class="label">From</span>
+      <input type="date" id="date-from" style="width:150px;flex:none;" />
+      <span class="label">To</span>
+      <input type="date" id="date-to" style="width:150px;flex:none;" />
+      <span class="text-sm" style="color:var(--text3);font-style:italic;">Leave blank to skip that bound</span>
+    </div>
+
+    <div class="scanner-row" style="margin-top:12px;">
       <button class="btn btn-primary" id="btn-scan" onclick="App.scan()" style="margin-left:auto;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         Scan Gmail
@@ -805,7 +829,8 @@ const App = {
 
   CLIENT_ID: '442564552114-ja63h55e5kpd8lms1n06brn20c3n4mtv.apps.googleusercontent.com',
   sortField: 'size',
-  sortDir: -1, // -1 = desc, 1 = asc
+  sortDir: -1,   // -1 = desc, 1 = asc
+  period: 'all', // 'all' | '30' | '90' | '365' | 'custom'
 
   // ── Init ─────────────────────────────────────────────────────────────
   init() {
@@ -873,15 +898,39 @@ const App = {
   // ── Size selector ─────────────────────────────────────────────────────
   setSize(mb) {
     this.thresholdMB = mb;
-    document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', +c.dataset.mb === mb));
+    document.querySelectorAll('[data-mb]').forEach(c => c.classList.toggle('on', +c.dataset.mb === mb));
     document.getElementById('custom-mb').value = '';
   },
   setCustomSize() {
     const v = parseInt(document.getElementById('custom-mb').value);
     if (v > 0) {
       this.thresholdMB = v;
-      document.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+      document.querySelectorAll('[data-mb]').forEach(c => c.classList.remove('on'));
     }
+  },
+
+  setPeriod(p) {
+    this.period = p;
+    document.querySelectorAll('[data-period]').forEach(c => c.classList.toggle('on', c.dataset.period === p));
+    const row = document.getElementById('date-range-row');
+    if (p === 'custom') row.classList.remove('hidden');
+    else row.classList.add('hidden');
+  },
+
+  _buildQuery() {
+    let q = `has:attachment larger:${this.thresholdMB}m`;
+    const fmt = d => `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+    if (this.period === 'custom') {
+      const from = document.getElementById('date-from').value;
+      const to   = document.getElementById('date-to').value;
+      if (from) q += ` after:${from.replace(/-/g,'/')}`;
+      if (to)   q += ` before:${to.replace(/-/g,'/')}`;
+    } else if (this.period !== 'all') {
+      const d = new Date();
+      d.setDate(d.getDate() - parseInt(this.period));
+      q += ` after:${fmt(d)}`;
+    }
+    return q;
   },
 
   // ── API helper ────────────────────────────────────────────────────────
@@ -910,7 +959,7 @@ const App = {
       this._prog(2, `Searching Gmail for attachments > ${this.thresholdMB} MB...`);
 
       // 1. List all messages
-      const msgs = await this._listMessages(`has:attachment larger:${this.thresholdMB}m`);
+      const msgs = await this._listMessages(this._buildQuery());
       if (!msgs.length) {
         this._prog(100, 'Done.');
         document.getElementById('empty-state').style.display = 'block';
