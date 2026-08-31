@@ -404,6 +404,21 @@ input::placeholder { color: var(--text3); }
   border-bottom: 1px solid var(--border);
 }
 .col-head .r { text-align: right; }
+.col-head .sh {
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  transition: background .12s, color .12s;
+}
+.col-head .sh:hover { background: var(--border); color: var(--text); }
+.col-head .sh.active { color: var(--accent); }
+.sort-arrow { font-size: 10px; opacity: .5; }
+.col-head .sh.active .sort-arrow { opacity: 1; }
 
 .thread-list { display: flex; flex-direction: column; }
 
@@ -737,13 +752,13 @@ input::placeholder { color: var(--text3); }
         <button class="btn btn-ghost btn-sm" onclick="App.deselectAll()">Deselect All</button>
         <span class="table-hint">Checked = moves to Trash &nbsp;|&nbsp; Uncheck threads you want to keep</span>
       </div>
-      <div class="col-head">
+      <div class="col-head" id="col-head">
         <div></div>
-        <div>Subject</div>
-        <div class="c-from">From</div>
-        <div>Date</div>
-        <div class="c-count r">Files</div>
-        <div class="r">Total Size</div>
+        <div><span class="sh" onclick="App.sortBy('subject')">Subject <span class="sort-arrow" id="sa-subject"></span></span></div>
+        <div class="c-from"><span class="sh" onclick="App.sortBy('from')">From <span class="sort-arrow" id="sa-from"></span></span></div>
+        <div><span class="sh" onclick="App.sortBy('date')">Date <span class="sort-arrow" id="sa-date"></span></span></div>
+        <div class="c-count r"><span class="sh" onclick="App.sortBy('files')">Files <span class="sort-arrow" id="sa-files"></span></span></div>
+        <div class="r"><span class="sh" onclick="App.sortBy('size')">Total Size <span class="sort-arrow" id="sa-size"></span></span></div>
       </div>
       <div class="thread-list" id="thread-list">
         <div class="empty" id="empty-state" style="display:none;">
@@ -789,6 +804,8 @@ const App = {
   selected: new Set(),     // threadIds checked for deletion
 
   CLIENT_ID: '442564552114-ja63h55e5kpd8lms1n06brn20c3n4mtv.apps.googleusercontent.com',
+  sortField: 'size',
+  sortDir: -1, // -1 = desc, 1 = asc
 
   // ── Init ─────────────────────────────────────────────────────────────
   init() {
@@ -1005,17 +1022,54 @@ const App = {
   _render() {
     // Default: all selected
     this.selected = new Set(this.threads.keys());
-
-    const list  = document.getElementById('thread-list');
-    const empty = document.getElementById('empty-state');
-    if (!this.threads.size) { empty.style.display = 'block'; list.innerHTML = ''; }
-    else {
-      empty.style.display = 'none';
-      const sorted = [...this.threads.values()].sort((a, b) => this._threadSize(b) - this._threadSize(a));
-      list.innerHTML = sorted.map(t => this._threadHtml(t)).join('');
-    }
+    this._renderList();
     document.getElementById('results-section').classList.remove('hidden');
     this._updateStats();
+  },
+
+  _renderList() {
+    const list  = document.getElementById('thread-list');
+    const empty = document.getElementById('empty-state');
+    if (!this.threads.size) { empty.style.display = 'block'; list.innerHTML = ''; return; }
+    empty.style.display = 'none';
+    const sorted = [...this.threads.values()].sort((a, b) => this._cmp(a, b));
+    list.innerHTML = sorted.map(t => this._threadHtml(t)).join('');
+    this._updateSortUI();
+  },
+
+  sortBy(field) {
+    if (this.sortField === field) this.sortDir *= -1;
+    else { this.sortField = field; this.sortDir = field === 'subject' || field === 'from' ? 1 : -1; }
+    this._renderList();
+    this._updateStats();
+  },
+
+  _cmp(a, b) {
+    const d = this.sortDir;
+    switch (this.sortField) {
+      case 'subject': return d * a.subject.localeCompare(b.subject, undefined, {sensitivity:'base'});
+      case 'from':    return d * a.from.localeCompare(b.from, undefined, {sensitivity:'base'});
+      case 'date':    return d * (a.date - b.date);
+      case 'files':   return d * (a.attachments.length - b.attachments.length);
+      case 'size':
+      default:        return d * (this._threadSize(a) - this._threadSize(b));
+    }
+  },
+
+  _updateSortUI() {
+    const fields = ['subject','from','date','files','size'];
+    fields.forEach(f => {
+      const arrow = document.getElementById('sa-' + f);
+      const span  = arrow?.closest('.sh');
+      if (!arrow || !span) return;
+      if (f === this.sortField) {
+        arrow.textContent = this.sortDir === -1 ? '↓' : '↑';
+        span.classList.add('active');
+      } else {
+        arrow.textContent = '↕';
+        span.classList.remove('active');
+      }
+    });
   },
 
   _threadSize(t) {
