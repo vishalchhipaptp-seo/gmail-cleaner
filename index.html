@@ -849,22 +849,45 @@ const App = {
           scope: 'https://www.googleapis.com/auth/gmail.modify',
           callback: r => this._onToken(r),
         });
-        document.getElementById('signin-card').classList.remove('hidden');
+        // If user previously signed in, try silent auth first (no popup)
+        if (localStorage.getItem('gc_signed_in')) {
+          this._silentAuth();
+        } else {
+          document.getElementById('signin-card').classList.remove('hidden');
+        }
       } catch(e) {
-        this.toast('Could not initialize Google Auth. Check your Client ID.', 'err');
+        this.toast('Could not initialize Google Auth.', 'err');
+        document.getElementById('signin-card').classList.remove('hidden');
       }
     };
     wait();
   },
 
+  _silentAuth() {
+    // Show a subtle "Reconnecting..." on the sign-in card while we try
+    document.getElementById('signin-card').classList.remove('hidden');
+    document.getElementById('signin-card').querySelector('p').textContent = 'Reconnecting…';
+    this.client.requestAccessToken({ prompt: 'none' });
+  },
+
   signIn() {
-    if (!this.client) { this.toast('Connect a Client ID first.', 'err'); return; }
-    this.client.requestAccessToken({ prompt: 'consent' });
+    if (!this.client) return;
+    this.client.requestAccessToken({ prompt: '' });
   },
 
   _onToken(resp) {
-    if (resp.error) { this.toast('Sign-in failed: ' + resp.error, 'err'); return; }
+    if (resp.error) {
+      // Silent auth failed — show the button for manual sign-in
+      const p = document.getElementById('signin-card').querySelector('p');
+      if (p) p.textContent = 'Grants read + modify access so we can find and trash large attachments.';
+      document.getElementById('signin-card').classList.remove('hidden');
+      return;
+    }
     this.token = resp.access_token;
+    localStorage.setItem('gc_signed_in', '1');
+    // Auto-refresh token 5 min before expiry (tokens last 1 hour)
+    clearTimeout(this._refreshTimer);
+    this._refreshTimer = setTimeout(() => this._silentAuth(), 55 * 60 * 1000);
     this._showSignedIn();
   },
 
@@ -883,7 +906,9 @@ const App = {
   },
 
   signOut() {
+    clearTimeout(this._refreshTimer);
     if (this.token) google.accounts.oauth2.revoke(this.token);
+    localStorage.removeItem('gc_signed_in');
     this.token = null;
     this.threads.clear();
     this.selected.clear();
