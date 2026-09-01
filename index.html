@@ -1201,10 +1201,24 @@ const App = {
   },
 
   sortBy(field) {
-    if (this.sortField === field) this.sortDir *= -1;
-    else { this.sortField = field; this.sortDir = field === 'subject' || field === 'from' ? 1 : -1; }
-    this._renderList();
-    this._updateStats();
+    try {
+      if (this.sortField === field) this.sortDir *= -1;
+      else { this.sortField = field; this.sortDir = field === 'subject' || field === 'from' ? 1 : -1; }
+      // Re-order existing DOM rows instead of re-rendering HTML
+      const list = document.getElementById('thread-list');
+      const rows = [...list.querySelectorAll('.thread-row[data-tid]')];
+      rows.sort((a, b) => {
+        const ta = this.threads.get(a.dataset.tid);
+        const tb = this.threads.get(b.dataset.tid);
+        if (!ta || !tb) return 0;
+        return this._cmp(ta, tb);
+      });
+      rows.forEach(r => list.appendChild(r));
+      this._updateSortUI();
+      this._updateStats();
+    } catch(e) {
+      this.toast('Sort error: ' + e.message, 'err');
+    }
   },
 
   _cmp(a, b) {
