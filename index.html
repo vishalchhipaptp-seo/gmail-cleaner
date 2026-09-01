@@ -1073,11 +1073,8 @@ const App = {
       // 1. List all messages
       const msgs = await this._listMessages(this._buildQuery());
       if (!msgs.length) {
-        this._prog(100, 'Done.');
-        document.getElementById('empty-state').style.display = 'block';
-        document.getElementById('thread-list').innerHTML = '';
-        document.getElementById('results-section').classList.remove('hidden');
-        this._updateStats();
+        this._prog(100, 'Done — no matching messages found.');
+        this._render();
         return;
       }
 
@@ -1191,10 +1188,11 @@ const App = {
   },
 
   _renderList() {
-    const list  = document.getElementById('thread-list');
-    const empty = document.getElementById('empty-state');
-    if (!this.threads.size) { empty.style.display = 'block'; list.innerHTML = ''; return; }
-    empty.style.display = 'none';
+    const list = document.getElementById('thread-list');
+    if (!this.threads.size) {
+      list.innerHTML = '<div class="empty" id="empty-state"><div class="empty-icon">🎉</div><h3>Inbox is clean!</h3><p>No threads with attachments that large were found.</p></div>';
+      return;
+    }
     const sorted = [...this.threads.values()].sort((a, b) => this._cmp(a, b));
     list.innerHTML = sorted.map(t => this._threadHtml(t)).join('');
     this._updateSortUI();
