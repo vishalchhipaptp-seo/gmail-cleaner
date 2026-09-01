@@ -404,8 +404,7 @@ input::placeholder { color: var(--text3); }
   border-bottom: 1px solid var(--border);
 }
 .col-head .r { text-align: right; }
-button.sh {
-  all: unset;
+.sh {
   cursor: pointer;
   user-select: none;
   display: flex;
@@ -424,9 +423,8 @@ button.sh {
   transition: background .12s, color .12s;
   box-sizing: border-box;
 }
-button.sh:hover { background: var(--border); color: var(--text); }
-button.sh.active { color: var(--accent); }
-button.sh:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.sh:hover { background: var(--border); color: var(--text); }
+.sh.active { color: var(--accent); }
 .sa { font-size: 11px; font-weight: 700; }
 
 .thread-list { display: flex; flex-direction: column; }
@@ -850,11 +848,11 @@ button.sh:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px;
       </div>
       <div class="col-head" id="col-head">
         <div></div>
-        <button class="sh" data-sort="subject" onclick="App.sortBy('subject')">Subject <span class="sa" id="sa-subject"></span></button>
-        <button class="sh c-from" data-sort="from" onclick="App.sortBy('from')">From <span class="sa" id="sa-from"></span></button>
-        <button class="sh" data-sort="date" onclick="App.sortBy('date')">Date <span class="sa" id="sa-date"></span></button>
-        <button class="sh" data-sort="files" onclick="App.sortBy('files')" style="justify-content:flex-end;">Files <span class="sa" id="sa-files"></span></button>
-        <button class="sh" data-sort="size" onclick="App.sortBy('size')" style="justify-content:flex-end;">Total Size <span class="sa" id="sa-size"></span></button>
+        <div class="sh" onclick="App.sortBy('subject')">Subject <span class="sa" id="sa-subject"></span></div>
+        <div class="sh c-from" onclick="App.sortBy('from')">From <span class="sa" id="sa-from"></span></div>
+        <div class="sh" onclick="App.sortBy('date')">Date <span class="sa" id="sa-date"></span></div>
+        <div class="sh" onclick="App.sortBy('files')" style="justify-content:flex-end;">Files <span class="sa" id="sa-files"></span></div>
+        <div class="sh" onclick="App.sortBy('size')" style="justify-content:flex-end;">Total Size <span class="sa" id="sa-size"></span></div>
       </div>
       <div class="thread-list" id="thread-list">
         <div class="empty" id="empty-state" style="display:none;">
@@ -1222,15 +1220,16 @@ const App = {
   },
 
   _updateSortUI() {
-    document.querySelectorAll('button.sh[data-sort]').forEach(btn => {
-      const f     = btn.dataset.sort;
+    const fields = ['subject','from','date','files','size'];
+    fields.forEach(f => {
       const arrow = document.getElementById('sa-' + f);
+      const header = document.querySelector(`#col-head .sh[onclick*="'${f}'"]`);
       if (f === this.sortField) {
         if (arrow) arrow.textContent = this.sortDir === -1 ? '↓' : '↑';
-        btn.classList.add('active');
+        if (header) header.classList.add('active');
       } else {
         if (arrow) arrow.textContent = '';
-        btn.classList.remove('active');
+        if (header) header.classList.remove('active');
       }
     });
   },
