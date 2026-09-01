@@ -646,6 +646,65 @@ button.sh:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px;
   .col-head .c-from, .col-head .c-count,
   .thread-main .t-from, .thread-main .t-count { display: none; }
 }
+
+/* ── History modal ── */
+.hist-modal-inner {
+  width: min(700px, 95vw);
+  max-height: 90vh;
+}
+.h-session {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.h-session-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--surface-alt, var(--bg));
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  font-family: var(--font-ui);
+}
+.h-session-size { color: var(--accent); font-weight: 600; }
+.h-item {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.h-item:last-child { border-bottom: none; }
+.h-subj {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-ui);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.h-meta {
+  font-size: 11.5px;
+  color: var(--text3);
+  margin-bottom: 7px;
+  font-family: var(--font-body);
+}
+.h-files { display: flex; flex-wrap: wrap; gap: 5px; }
+.hf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: 11.5px;
+  color: var(--text2);
+  font-family: var(--font-body);
+}
 </style>
 </head>
 <body>
@@ -666,6 +725,10 @@ button.sh:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px;
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-email-display"></span>
     </div>
+    <button class="btn btn-ghost btn-sm hidden" id="btn-history" onclick="App.showHistory()" title="View deletion history">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      History
+    </button>
     <button class="btn btn-ghost btn-sm hidden" id="btn-signout" onclick="App.signOut()">Sign out</button>
   </div>
 </div>
@@ -824,6 +887,21 @@ button.sh:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px;
   </div>
 </div>
 
+<!-- History modal -->
+<div class="overlay hidden" id="hist-modal" onclick="if(event.target===this)App.closeHistory()">
+  <div class="modal hist-modal-inner">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="margin:0;">Deletion History</h3>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm" onclick="App.clearHistory()">Clear All</button>
+        <button class="btn btn-ghost btn-sm" onclick="App.closeHistory()">Close</button>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:14px;">Only the specific messages carrying large attachments are trashed. The rest of each thread stays in your inbox.</p>
+    <div id="hist-body" style="max-height:60vh;overflow-y:auto;"></div>
+  </div>
+</div>
+
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script>
 const GMAIL = 'https://gmail.googleapis.com/gmail/v1/users/me';
@@ -914,6 +992,7 @@ const App = {
       chip.classList.remove('hidden');
     }).catch(() => {});
     document.getElementById('signin-card').classList.add('hidden');
+    document.getElementById('btn-history').classList.remove('hidden');
     document.getElementById('btn-signout').classList.remove('hidden');
     document.getElementById('scanner-card').classList.remove('hidden');
   },
@@ -926,6 +1005,7 @@ const App = {
     this.threads.clear();
     this.selected.clear();
     document.getElementById('user-chip').classList.add('hidden');
+    document.getElementById('btn-history').classList.add('hidden');
     document.getElementById('btn-signout').classList.add('hidden');
     document.getElementById('scanner-card').classList.add('hidden');
     document.getElementById('results-section').classList.add('hidden');
@@ -1071,11 +1151,13 @@ const App = {
       const atts   = this._extractAtts(msg.payload);
 
       if (!this.threads.has(tid)) {
-        this.threads.set(tid, { tid, subject: subj, from, date, attachments: [], sizeEst: 0 });
+        this.threads.set(tid, { tid, subject: subj, from, date, attachments: [], sizeEst: 0, messageIds: [] });
       }
       const t = this.threads.get(tid);
       if (date > t.date) t.date = date;
       t.sizeEst += msg.sizeEstimate || 0;
+      // Track only the specific messages that have large attachments (not all thread messages)
+      if (!t.messageIds.includes(msg.id)) t.messageIds.push(msg.id);
       for (const a of atts) {
         const key = a.name + '|' + a.size;
         if (!t.attachments.some(x => x.name + '|' + x.size === key)) t.attachments.push(a);
@@ -1253,8 +1335,9 @@ const App = {
     if (!n) return;
     let sz = 0;
     for (const tid of this.selected) { const t = this.threads.get(tid); if (t) sz += this._threadSize(t); }
+    const msgCount = [...this.selected].reduce((sum, tid) => sum + (this.threads.get(tid)?.messageIds?.length || 1), 0);
     document.getElementById('modal-body').textContent =
-      `${n} thread${n > 1 ? 's' : ''} (~${this._fmtSize(sz)}) will be moved to Gmail Trash. You can restore them within 30 days.`;
+      `Only the ${msgCount} message${msgCount !== 1 ? 's' : ''} carrying large attachments (from ${n} thread${n > 1 ? 's' : ''}, ~${this._fmtSize(sz)}) will be moved to Trash. The rest of each thread stays in your inbox. You can restore trashed messages within 30 days.`;
     document.getElementById('modal').classList.remove('hidden');
   },
 
@@ -1264,7 +1347,10 @@ const App = {
     this.closeModal();
     const toTrash = [...this.selected];
     const total   = toTrash.length;
-    let done = 0, fail = 0;
+    let done = 0, fail = 0, msgsDone = 0;
+
+    // Save to history before trashing
+    this._saveHistory(toTrash.map(tid => this.threads.get(tid)).filter(Boolean));
 
     document.getElementById('btn-trash').disabled = true;
     document.getElementById('scan-progress').classList.remove('hidden');
@@ -1273,8 +1359,19 @@ const App = {
     for (let i = 0; i < total; i += 4) {
       const batch = toTrash.slice(i, i + 4);
       await Promise.all(batch.map(async tid => {
+        const t = this.threads.get(tid);
+        const msgIds = t?.messageIds?.length ? t.messageIds : null;
         try {
-          await this.api(`${GMAIL}/threads/${tid}/trash`, { method: 'POST' });
+          if (msgIds) {
+            // Trash ONLY the specific messages that have large attachments, not the whole thread
+            for (const mid of msgIds) {
+              await this.api(`${GMAIL}/messages/${mid}/trash`, { method: 'POST' });
+              msgsDone++;
+            }
+          } else {
+            // Fallback: trash whole thread if no message IDs tracked (shouldn't happen)
+            await this.api(`${GMAIL}/threads/${tid}/trash`, { method: 'POST' });
+          }
           done++;
           const row = document.getElementById('tr-' + tid);
           if (row) { row.style.opacity = '0'; row.style.transition = 'opacity .3s'; setTimeout(() => row.remove(), 300); }
@@ -1288,8 +1385,8 @@ const App = {
 
     this._updateStats();
     setTimeout(() => document.getElementById('scan-progress').classList.add('hidden'), 2000);
-    if (fail) this.toast(`${done} moved to Trash, ${fail} failed.`, 'err');
-    else      this.toast(`${done} thread${done !== 1 ? 's' : ''} moved to Trash.`, 'ok');
+    if (fail) this.toast(`${done} moved, ${fail} failed — only attachment messages trashed, rest of thread kept.`, 'err');
+    else      this.toast(`${done} thread${done !== 1 ? 's' : ''}: only the ${msgsDone} message${msgsDone !== 1 ? 's' : ''} with large attachments moved to Trash.`, 'ok');
     document.getElementById('btn-trash').disabled = this.selected.size === 0;
   },
 
@@ -1332,6 +1429,68 @@ const App = {
   _esc(s) {
     return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   },
+
+  // ── Deletion History ──────────────────────────────────────────────────
+  _saveHistory(threads) {
+    if (!threads.length) return;
+    const entry = {
+      ts: Date.now(),
+      items: threads.map(t => ({
+        subject: t.subject,
+        from: t.from,
+        date: t.date?.toISOString() || null,
+        msgCount: t.messageIds?.length || 1,
+        files: t.attachments.map(a => ({ name: a.name, size: a.size, mime: a.mime })),
+        size: this._threadSize(t),
+      }))
+    };
+    try {
+      const hist = JSON.parse(localStorage.getItem('gc_history') || '[]');
+      hist.unshift(entry);
+      localStorage.setItem('gc_history', JSON.stringify(hist.slice(0, 100)));
+    } catch(e) { console.warn('Could not save history', e); }
+  },
+
+  showHistory() {
+    let hist = [];
+    try { hist = JSON.parse(localStorage.getItem('gc_history') || '[]'); } catch(e) {}
+    const body = document.getElementById('hist-body');
+    if (!hist.length) {
+      body.innerHTML = '<p style="color:var(--text3);font-size:13px;text-align:center;padding:24px 0;">No deletion history yet.<br>History is saved here each time you move messages to Trash.</p>';
+    } else {
+      body.innerHTML = hist.map((entry, ei) => {
+        const d = new Date(entry.ts);
+        const label = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const totalSz = entry.items.reduce((s, i) => s + (i.size || 0), 0);
+        const rows = entry.items.map(item => {
+          const files = item.files.map(f =>
+            `<span class="hf-chip">${this._icon(f.mime, f.name)} ${this._esc(f.name)} &nbsp;<strong>${this._fmtSize(f.size)}</strong></span>`
+          ).join('');
+          return `<div class="h-item">
+            <div class="h-subj">${this._esc(item.subject)}</div>
+            <div class="h-meta">From: <strong>${this._esc(item.from)}</strong> &nbsp;·&nbsp; ${item.msgCount} message${item.msgCount !== 1 ? 's' : ''} trashed &nbsp;·&nbsp; ${this._fmtSize(item.size)}</div>
+            <div class="h-files">${files || '<em style="color:var(--text3);font-size:11px;">No attachment metadata</em>'}</div>
+          </div>`;
+        }).join('');
+        return `<div class="h-session">
+          <div class="h-session-hdr">
+            <span>Session ${ei + 1} &nbsp;·&nbsp; ${label}</span>
+            <span class="h-session-size">${entry.items.length} thread${entry.items.length !== 1 ? 's' : ''}, ~${this._fmtSize(totalSz)} freed</span>
+          </div>
+          ${rows}
+        </div>`;
+      }).join('');
+    }
+    document.getElementById('hist-modal').classList.remove('hidden');
+  },
+
+  clearHistory() {
+    if (!confirm('Clear all deletion history? This cannot be undone.')) return;
+    localStorage.removeItem('gc_history');
+    this.showHistory();
+  },
+
+  closeHistory() { document.getElementById('hist-modal').classList.add('hidden'); },
 
   toast(msg, type = 'info') {
     const old = document.querySelector('.toast');
