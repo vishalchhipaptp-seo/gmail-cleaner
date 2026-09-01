@@ -850,11 +850,11 @@ button.sh:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px;
       </div>
       <div class="col-head" id="col-head">
         <div></div>
-        <button class="sh" data-sort="subject">Subject <span class="sa" id="sa-subject"></span></button>
-        <button class="sh c-from" data-sort="from">From <span class="sa" id="sa-from"></span></button>
-        <button class="sh" data-sort="date">Date <span class="sa" id="sa-date"></span></button>
-        <button class="sh" data-sort="files" style="justify-content:flex-end;">Files <span class="sa" id="sa-files"></span></button>
-        <button class="sh" data-sort="size" style="justify-content:flex-end;">Total Size <span class="sa" id="sa-size"></span></button>
+        <button class="sh" data-sort="subject" onclick="App.sortBy('subject')">Subject <span class="sa" id="sa-subject"></span></button>
+        <button class="sh c-from" data-sort="from" onclick="App.sortBy('from')">From <span class="sa" id="sa-from"></span></button>
+        <button class="sh" data-sort="date" onclick="App.sortBy('date')">Date <span class="sa" id="sa-date"></span></button>
+        <button class="sh" data-sort="files" onclick="App.sortBy('files')" style="justify-content:flex-end;">Files <span class="sa" id="sa-files"></span></button>
+        <button class="sh" data-sort="size" onclick="App.sortBy('size')" style="justify-content:flex-end;">Total Size <span class="sa" id="sa-size"></span></button>
       </div>
       <div class="thread-list" id="thread-list">
         <div class="empty" id="empty-state" style="display:none;">
@@ -924,10 +924,6 @@ const App = {
     if (location.protocol === 'file:') {
       document.getElementById('proto-warn').classList.remove('hidden');
     }
-    // Wire sort buttons
-    document.querySelectorAll('button.sh[data-sort]').forEach(btn => {
-      btn.addEventListener('click', () => App.sortBy(btn.dataset.sort));
-    });
     this._initGIS(this.CLIENT_ID);
   },
 
