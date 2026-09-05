@@ -652,7 +652,6 @@ input::placeholder { color: var(--text3); }
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  position: relative;
 }
 .date-range-header {
   display: flex;
@@ -726,10 +725,8 @@ input::placeholder { color: var(--text3); }
 
 /* ── Custom calendar popup ── */
 .cal-popup {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  z-index: 200;
+  position: fixed;
+  z-index: 9999;
   background: var(--surface);
   border: 1.5px solid var(--border);
   border-radius: 12px;
@@ -1289,13 +1286,26 @@ const App = {
     c.y = ref.getFullYear();
     c.m = ref.getMonth();
     this._renderCal();
-    document.getElementById('cal-popup').classList.remove('hidden');
+    const popup = document.getElementById('cal-popup');
+    popup.classList.remove('hidden');
     document.getElementById('from-btn').classList.toggle('active', field === 'from');
     document.getElementById('to-btn').classList.toggle('active', field === 'to');
+
+    // Position popup near the clicked button, flip above if not enough room below
+    const btn  = document.getElementById(field === 'from' ? 'from-btn' : 'to-btn');
+    const rect = btn.getBoundingClientRect();
+    const popH = 400; // approx popup height
+    const popW = 300;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const top  = spaceBelow >= popH ? rect.bottom + 8 : rect.top - popH - 8;
+    const left = Math.min(rect.left, window.innerWidth - popW - 8);
+    popup.style.top  = Math.max(8, top)  + 'px';
+    popup.style.left = Math.max(8, left) + 'px';
+
     // Close on outside click
     setTimeout(() => {
       const close = e => {
-        if (!document.getElementById('cal-popup').contains(e.target) &&
+        if (!popup.contains(e.target) &&
             !document.getElementById('from-btn').contains(e.target) &&
             !document.getElementById('to-btn').contains(e.target)) {
           this.closeCal();
