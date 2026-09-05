@@ -645,6 +645,102 @@ input::placeholder { color: var(--text3); }
   .thread-main .t-from, .thread-main .t-count { display: none; }
 }
 
+/* ── Date range card ── */
+.date-range-card {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.date-range-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.date-field { display: flex; flex-direction: column; gap: 5px; }
+.date-field-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text3);
+  font-family: var(--font-ui);
+}
+.date-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 11px;
+  background: var(--surface);
+  color: var(--text2);
+  transition: border-color .15s;
+}
+.date-input-wrap:focus-within {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.date-input-wrap input[type="date"] {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--text);
+  cursor: pointer;
+  width: 130px;
+}
+.date-input-wrap input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  width: 160px;
+  cursor: pointer;
+}
+.date-range-arrow {
+  font-size: 18px;
+  color: var(--text3);
+  padding-bottom: 8px;
+  align-self: flex-end;
+}
+.date-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.date-shortcuts-label {
+  font-size: 11.5px;
+  color: var(--text3);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.dshort {
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  border-radius: 20px;
+  padding: 3px 11px;
+  font-size: 12px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: border-color .12s, color .12s, background .12s;
+}
+.dshort:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--bg);
+}
+.dshort.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
 /* ── History modal ── */
 .hist-modal-inner {
   width: min(700px, 95vw);
@@ -788,12 +884,34 @@ input::placeholder { color: var(--text3); }
     </div>
 
     <!-- Custom date range (hidden until custom selected) -->
-    <div class="scanner-row hidden" id="date-range-row" style="margin-top:10px;gap:8px;">
-      <span class="label">From</span>
-      <input type="date" id="date-from" style="width:150px;flex:none;" />
-      <span class="label">To</span>
-      <input type="date" id="date-to" style="width:150px;flex:none;" />
-      <span class="text-sm" style="color:var(--text3);">Either date is optional — leave one blank for "before X" or "after X" only</span>
+    <div class="date-range-card hidden" id="date-range-row">
+      <div class="date-range-inputs">
+        <div class="date-field">
+          <div class="date-field-label">From</div>
+          <div class="date-input-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <input type="date" id="date-from" />
+          </div>
+        </div>
+        <div class="date-range-arrow">→</div>
+        <div class="date-field">
+          <div class="date-field-label">To</div>
+          <div class="date-input-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <input type="date" id="date-to" />
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="App.clearDateRange()" style="margin-left:4px;align-self:flex-end;">✕ Clear</button>
+      </div>
+      <div class="date-shortcuts">
+        <span class="date-shortcuts-label">Quick pick:</span>
+        <button class="dshort" onclick="App.setDateShortcut('this-month')">This month</button>
+        <button class="dshort" onclick="App.setDateShortcut('last-month')">Last month</button>
+        <button class="dshort" onclick="App.setDateShortcut('last-3m')">Last 3 months</button>
+        <button class="dshort" onclick="App.setDateShortcut('this-year')">This year</button>
+        <button class="dshort" onclick="App.setDateShortcut('last-year')">Last year</button>
+      </div>
+      <div class="hint" style="margin-top:6px;">Leave either date blank — "From only" finds all emails after that date, "To only" finds all before it.</div>
     </div>
 
     <div class="scanner-row" style="margin-top:12px;">
@@ -1037,6 +1155,38 @@ const App = {
     const row = document.getElementById('date-range-row');
     if (p === 'custom') row.classList.remove('hidden');
     else row.classList.add('hidden');
+  },
+
+  clearDateRange() {
+    document.getElementById('date-from').value = '';
+    document.getElementById('date-to').value = '';
+    document.querySelectorAll('.dshort').forEach(b => b.classList.remove('active'));
+  },
+
+  setDateShortcut(key) {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    let from, to;
+    if (key === 'this-month') {
+      from = new Date(now.getFullYear(), now.getMonth(), 1);
+      to   = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else if (key === 'last-month') {
+      from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      to   = new Date(now.getFullYear(), now.getMonth(), 0);
+    } else if (key === 'last-3m') {
+      from = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+      to   = now;
+    } else if (key === 'this-year') {
+      from = new Date(now.getFullYear(), 0, 1);
+      to   = new Date(now.getFullYear(), 11, 31);
+    } else if (key === 'last-year') {
+      from = new Date(now.getFullYear() - 1, 0, 1);
+      to   = new Date(now.getFullYear() - 1, 11, 31);
+    }
+    document.getElementById('date-from').value = from ? fmt(from) : '';
+    document.getElementById('date-to').value   = to   ? fmt(to)   : '';
+    document.querySelectorAll('.dshort').forEach(b => b.classList.toggle('active', b.getAttribute('onclick').includes(`'${key}'`)));
   },
 
   _buildQuery() {
