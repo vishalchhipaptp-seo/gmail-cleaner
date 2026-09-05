@@ -1361,39 +1361,48 @@ const App = {
 
     document.getElementById('btn-trash').disabled = true;
     document.getElementById('scan-progress').classList.remove('hidden');
-    this._prog(0, `Moving to Trash: 0 / ${total}...`);
+    this._prog(0, `Moving to Trash: 0 / ${total}... (safe to switch tabs)`);
 
-    for (let i = 0; i < total; i += 4) {
-      const batch = toTrash.slice(i, i + 4);
-      await Promise.all(batch.map(async tid => {
-        const t = this.threads.get(tid);
-        const msgIds = t?.messageIds?.length ? t.messageIds : null;
-        try {
-          if (msgIds) {
-            // Trash ONLY the specific messages that have large attachments, not the whole thread
-            for (const mid of msgIds) {
-              await this.api(`${GMAIL}/messages/${mid}/trash`, { method: 'POST' });
-              msgsDone++;
+    const doWork = async () => {
+      for (let i = 0; i < total; i += 4) {
+        const batch = toTrash.slice(i, i + 4);
+        await Promise.all(batch.map(async tid => {
+          const t = this.threads.get(tid);
+          const msgIds = t?.messageIds?.length ? t.messageIds : null;
+          try {
+            if (msgIds) {
+              for (const mid of msgIds) {
+                await this.api(`${GMAIL}/messages/${mid}/trash`, { method: 'POST' });
+                msgsDone++;
+              }
+            } else {
+              await this.api(`${GMAIL}/threads/${tid}/trash`, { method: 'POST' });
             }
-          } else {
-            // Fallback: trash whole thread if no message IDs tracked (shouldn't happen)
-            await this.api(`${GMAIL}/threads/${tid}/trash`, { method: 'POST' });
-          }
-          done++;
-          const row = document.getElementById('tr-' + tid);
-          if (row) { row.style.opacity = '0'; row.style.transition = 'opacity .3s'; setTimeout(() => row.remove(), 300); }
-          this.threads.delete(tid);
-          this.selected.delete(tid);
-        } catch(e) { fail++; console.error(e); }
-      }));
-      this._prog(Math.round((i + 4) / total * 100), `Moved ${done} / ${total} to Trash...`);
-      if (i + 4 < total) await this._sleep(80);
+            done++;
+            const row = document.getElementById('tr-' + tid);
+            if (row) { row.style.opacity = '0'; row.style.transition = 'opacity .3s'; setTimeout(() => row.remove(), 300); }
+            this.threads.delete(tid);
+            this.selected.delete(tid);
+          } catch(e) { fail++; console.error(e); }
+        }));
+        this._prog(Math.round((i + 4) / total * 100), `Moved ${done} / ${total} to Trash...`);
+        // No sleep — network latency is sufficient throttling and sleeps get
+        // stretched to 1s+ in background tabs; Web Lock below prevents suspension.
+      }
+    };
+
+    // Web Locks API: tells the browser this is active work — prevents background-tab
+    // timer throttling so deletion continues at full speed even if you switch tabs.
+    if (navigator.locks?.request) {
+      await navigator.locks.request('gc-trash', { mode: 'exclusive' }, doWork);
+    } else {
+      await doWork();
     }
 
     this._updateStats();
     setTimeout(() => document.getElementById('scan-progress').classList.add('hidden'), 2000);
-    if (fail) this.toast(`${done} moved, ${fail} failed — only attachment messages trashed, rest of thread kept.`, 'err');
-    else      this.toast(`${done} thread${done !== 1 ? 's' : ''}: only the ${msgsDone} message${msgsDone !== 1 ? 's' : ''} with large attachments moved to Trash.`, 'ok');
+    if (fail) this.toast(`${done} moved, ${fail} failed.`, 'err');
+    else      this.toast(`Done — ${msgsDone} message${msgsDone !== 1 ? 's' : ''} with large attachments moved to Trash.`, 'ok');
     document.getElementById('btn-trash').disabled = this.selected.size === 0;
   },
 
