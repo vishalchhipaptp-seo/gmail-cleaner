@@ -797,7 +797,11 @@ input::placeholder { color: var(--text3); }
     </div>
 
     <div class="scanner-row" style="margin-top:12px;">
-      <button class="btn btn-primary" id="btn-scan" onclick="App.scan()" style="margin-left:auto;">
+      <button class="btn btn-ghost hidden" id="btn-pause" onclick="App.pause()" style="margin-left:auto;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        <span id="pause-label">Pause</span>
+      </button>
+      <button class="btn btn-primary" id="btn-scan" onclick="App.scan()" style="margin-left:8px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         Scan Gmail
       </button>
@@ -1068,10 +1072,23 @@ const App = {
   },
 
   // ── Scan ──────────────────────────────────────────────────────────────
+  _pauseReq: false,
+
+  pause() {
+    if (!this.scanning) return;
+    this._pauseReq = true;
+    document.getElementById('pause-label').textContent = 'Pausing…';
+    document.getElementById('btn-pause').disabled = true;
+  },
+
   async scan() {
     if (this.scanning || !this.token) return;
     this.scanning = true;
+    this._pauseReq = false;
     document.getElementById('btn-scan').disabled = true;
+    document.getElementById('btn-pause').classList.remove('hidden');
+    document.getElementById('btn-pause').disabled = false;
+    document.getElementById('pause-label').textContent = 'Pause';
     document.getElementById('results-section').classList.add('hidden');
     document.getElementById('scan-progress').classList.remove('hidden');
     this.threads.clear();
@@ -1090,24 +1107,31 @@ const App = {
 
       this._prog(12, `Found ${msgs.length} messages. Fetching details...`);
 
-      // 2. Fetch details in batches of 8
-      const details = await this._fetchBatch(msgs);
+      // 2. Fetch details in batches of 8 (pauseable)
+      const { details, paused, fetched, remaining } = await this._fetchBatch(msgs);
 
       // 3. Build thread map
-      this._prog(92, 'Grouping by thread...');
+      this._prog(paused ? 95 : 92, 'Grouping by thread...');
       this._buildThreads(details.filter(Boolean));
 
       // 4. Render
-      this._prog(100, `Complete — ${this.threads.size} thread${this.threads.size !== 1 ? 's' : ''} found.`);
+      if (paused) {
+        this._prog(100, `Paused — ${this.threads.size} thread${this.threads.size !== 1 ? 's' : ''} found so far (${remaining} messages not yet scanned). Delete these, then scan again for the rest.`);
+      } else {
+        this._prog(100, `Complete — ${this.threads.size} thread${this.threads.size !== 1 ? 's' : ''} found.`);
+      }
       this._render();
 
     } catch(e) {
       this.toast('Scan error: ' + e.message, 'err');
       console.error(e);
     } finally {
+      const wasPaused = this._pauseReq;
       this.scanning = false;
+      this._pauseReq = false;
       document.getElementById('btn-scan').disabled = false;
-      setTimeout(() => document.getElementById('scan-progress').classList.add('hidden'), 2200);
+      document.getElementById('btn-pause').classList.add('hidden');
+      setTimeout(() => document.getElementById('scan-progress').classList.add('hidden'), wasPaused ? 6000 : 2200);
     }
   },
 
@@ -1126,15 +1150,18 @@ const App = {
   async _fetchBatch(msgs) {
     const results = [];
     const total = msgs.length;
-    const BS = 8; // concurrent requests
+    const BS = 8;
     for (let i = 0; i < total; i += BS) {
+      if (this._pauseReq) {
+        return { details: results, paused: true, fetched: i, remaining: total - i };
+      }
       const batch = msgs.slice(i, i + BS);
       const res = await Promise.all(batch.map(m => this._msgDetail(m.id).catch(() => null)));
       results.push(...res);
-      this._prog(12 + Math.round((i + BS) / total * 76), `Fetched ${Math.min(i + BS, total)} / ${total}`);
+      this._prog(12 + Math.round((i + BS) / total * 76), `Fetched ${Math.min(i + BS, total)} / ${total} — click Pause to stop early`);
       if (i + BS < total) await this._sleep(70);
     }
-    return results;
+    return { details: results, paused: false, fetched: total, remaining: 0 };
   },
 
   async _msgDetail(id) {
