@@ -648,25 +648,39 @@ input::placeholder { color: var(--text3); }
 /* ── Date range card ── */
 .date-range-card {
   margin-top: 12px;
-  padding: 14px 16px;
+  padding: 16px 18px 14px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
-.date-range-inputs {
+.date-range-header {
   display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
 }
-.date-field { display: flex; flex-direction: column; gap: 5px; }
-.date-field-label {
+.date-range-title {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .06em;
+  letter-spacing: .07em;
   color: var(--text3);
   font-family: var(--font-ui);
+}
+.date-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.date-field { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+.date-field-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text3);
+  font-family: var(--font-ui);
+  padding-left: 2px;
 }
 .date-input-wrap {
   display: flex;
@@ -674,14 +688,16 @@ input::placeholder { color: var(--text3); }
   gap: 8px;
   border: 1.5px solid var(--border);
   border-radius: 8px;
-  padding: 7px 11px;
+  padding: 8px 12px;
   background: var(--surface);
-  color: var(--text2);
-  transition: border-color .15s;
+  color: var(--text3);
+  transition: border-color .15s, box-shadow .15s;
+  cursor: pointer;
 }
 .date-input-wrap:focus-within {
   border-color: var(--accent);
-  color: var(--text);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
 }
 .date-input-wrap input[type="date"] {
   border: none;
@@ -691,55 +707,54 @@ input::placeholder { color: var(--text3); }
   font-size: 13.5px;
   color: var(--text);
   cursor: pointer;
-  width: 130px;
+  width: 135px;
+  min-width: 0;
 }
 .date-input-wrap input[type="date"]::-webkit-calendar-picker-indicator {
-  opacity: 0;
-  position: absolute;
-  width: 160px;
   cursor: pointer;
+  opacity: 0.5;
+  margin-left: 2px;
 }
+.date-input-wrap input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .date-range-arrow {
-  font-size: 18px;
+  padding: 18px 10px 0;
+  font-size: 14px;
   color: var(--text3);
-  padding-bottom: 8px;
-  align-self: flex-end;
+  flex-shrink: 0;
+}
+.date-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0 12px;
 }
 .date-shortcuts {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 10px;
   flex-wrap: wrap;
 }
 .date-shortcuts-label {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--text3);
   font-family: var(--font-ui);
   font-weight: 600;
   white-space: nowrap;
+  margin-right: 2px;
 }
 .dshort {
   border: 1.5px solid var(--border);
   background: var(--surface);
   color: var(--text2);
   border-radius: 20px;
-  padding: 3px 11px;
+  padding: 4px 12px;
   font-size: 12px;
   font-family: var(--font-ui);
   cursor: pointer;
   transition: border-color .12s, color .12s, background .12s;
+  white-space: nowrap;
 }
-.dshort:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--bg);
-}
-.dshort.active {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
-}
+.dshort:hover { border-color: var(--accent); color: var(--accent); }
+.dshort.active { border-color: var(--accent); background: var(--accent); color: #fff; }
 
 /* ── History modal ── */
 .hist-modal-inner {
@@ -885,6 +900,10 @@ input::placeholder { color: var(--text3); }
 
     <!-- Custom date range (hidden until custom selected) -->
     <div class="date-range-card hidden" id="date-range-row">
+      <div class="date-range-header">
+        <span class="date-range-title">📅 Select date range</span>
+        <button class="btn btn-ghost btn-sm" onclick="App.clearDateRange()">✕ Clear dates</button>
+      </div>
       <div class="date-range-inputs">
         <div class="date-field">
           <div class="date-field-label">From</div>
@@ -901,17 +920,17 @@ input::placeholder { color: var(--text3); }
             <input type="date" id="date-to" />
           </div>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="App.clearDateRange()" style="margin-left:4px;align-self:flex-end;">✕ Clear</button>
       </div>
+      <div class="date-divider"></div>
       <div class="date-shortcuts">
-        <span class="date-shortcuts-label">Quick pick:</span>
+        <span class="date-shortcuts-label">Quick:</span>
         <button class="dshort" onclick="App.setDateShortcut('this-month')">This month</button>
         <button class="dshort" onclick="App.setDateShortcut('last-month')">Last month</button>
         <button class="dshort" onclick="App.setDateShortcut('last-3m')">Last 3 months</button>
         <button class="dshort" onclick="App.setDateShortcut('this-year')">This year</button>
         <button class="dshort" onclick="App.setDateShortcut('last-year')">Last year</button>
       </div>
-      <div class="hint" style="margin-top:6px;">Leave either date blank — "From only" finds all emails after that date, "To only" finds all before it.</div>
+      <div class="hint" style="margin-top:8px;">Either date is optional — leave one blank for "after X" or "before X" only.</div>
     </div>
 
     <div class="scanner-row" style="margin-top:12px;">
