@@ -764,14 +764,15 @@ input::placeholder { color: var(--text3); }
     <div class="scanner-row">
       <span class="label">Min size</span>
       <div class="chip-group">
-        <div class="chip" data-mb="5"  onclick="App.setSize(5)">5 MB</div>
+        <div class="chip" data-mb="0.5" onclick="App.setSize(0.5)">500 KB</div>
+        <div class="chip" data-mb="5"   onclick="App.setSize(5)">5 MB</div>
         <div class="chip on" data-mb="10" onclick="App.setSize(10)">10 MB</div>
         <div class="chip" data-mb="20" onclick="App.setSize(20)">20 MB</div>
         <div class="chip" data-mb="50" onclick="App.setSize(50)">50 MB</div>
         <div class="chip" data-mb="100" onclick="App.setSize(100)">100 MB</div>
       </div>
       <span class="label" style="margin-left:4px;">or</span>
-      <input type="number" id="custom-mb" placeholder="Custom MB" style="width:110px;flex:none;" min="1" oninput="App.setCustomSize()" />
+      <input type="number" id="custom-mb" placeholder="e.g. 0.5 MB" style="width:120px;flex:none;" min="0.1" step="0.1" oninput="App.setCustomSize()" />
     </div>
 
     <!-- Date filter row -->
@@ -1014,11 +1015,16 @@ const App = {
     document.getElementById('custom-mb').value = '';
   },
   setCustomSize() {
-    const v = parseInt(document.getElementById('custom-mb').value);
+    const v = parseFloat(document.getElementById('custom-mb').value);
     if (v > 0) {
       this.thresholdMB = v;
       document.querySelectorAll('[data-mb]').forEach(c => c.classList.remove('on'));
     }
+  },
+
+  _fmtThreshold() {
+    if (this.thresholdMB < 1) return `${Math.round(this.thresholdMB * 1024)} KB`;
+    return `${this.thresholdMB} MB`;
   },
 
   setPeriod(p) {
@@ -1030,7 +1036,11 @@ const App = {
   },
 
   _buildQuery() {
-    let q = `has:attachment larger:${this.thresholdMB}m`;
+    // Gmail supports larger:Xm (MB) and larger:Xk (KB); use KB for sub-1MB values
+    const sizeClause = this.thresholdMB < 1
+      ? `larger:${Math.round(this.thresholdMB * 1024)}k`
+      : `larger:${this.thresholdMB}m`;
+    let q = `has:attachment ${sizeClause}`;
     const fmt = d => `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
     if (this.period === 'custom') {
       const from = document.getElementById('date-from').value;
@@ -1068,7 +1078,7 @@ const App = {
     this.selected.clear();
 
     try {
-      this._prog(2, `Searching Gmail for attachments > ${this.thresholdMB} MB...`);
+      this._prog(2, `Searching Gmail for attachments > ${this._fmtThreshold()}...`);
 
       // 1. List all messages
       const msgs = await this._listMessages(this._buildQuery());
